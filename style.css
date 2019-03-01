@@ -1,0 +1,102 @@
+@import url("//fonts.googleapis.com/css?family=Montserrat:100,300,500|Open+Sans:100,300,500|Roboto:100,300,500");
+
+label {
+  font-family: "Roboto";
+  font-weight: 500;
+}
+
+.main-header .logo {
+  font-family: "Roboto", sans-serif;
+  font-weight: 100;
+  font-size: 24px;
+}
+
+.form-control {
+  font-family:Roboto;
+  color:black;
+}
+
+.form-control[disabled], .form-control[readonly], fieldset[disabled] .form-control {
+background-color: rgb(255, 255, 255);
+opacity: 1;
+}
+
+/*
+.main-header .navbar-custom-menu{ 
+  float: right;
+  width: 97%;
+}
+
+
+.navbar-nav{
+  float: left;
+  margin: 0;
+  width: 100%;
+}
+
+.main-header {
+  position: fixed;
+  width:100%;
+  color: red;
+}
+
+.content {
+  padding-top: 60px;
+}
+
+
+.main-sidebar{ 
+  position: fixed;
+}
+
+*/
+
+div.busy { 
+  position:fixed;
+  top: 40%;
+  left: 50%;
+  margin-top: -100px;
+  margin-left: -50px;
+  display:none;
+  background: rgba(230, 230, 230, .8);
+  text-align: center;
+  padding-top: 20px;
+  padding-left: 30px;
+  padding-bottom: 40px;
+  padding-right: 30px;
+  border-radius: 5px;
+  z-index: 10;
+}
+
+
+.shiny-output-error-valErrorMsgClass{
+  color:  red; /*#24a531;*/
+  font-size: 15px;
+}
+
+.shiny-output-error-valErrorMsgClass_2{
+  color:  #e67e22 ; /* #24a531;*/
+  font-size: 15px;
+}
+
+
+
+h1 {
+  font-family: 'Roboto', sans-serif;
+  font-weight:300;
+}
+
+h2 {
+  font-family: 'Roboto', sans-serif;
+}
+h3 {
+  font-family: 'Roboto', sans-serif;
+}
+h4 {
+  font-family: 'Roboto', sans-serif;
+}
+p {
+  font-family: 'Roboto', sans-serif;
+}
+
+
