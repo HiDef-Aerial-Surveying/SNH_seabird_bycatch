@@ -5,9 +5,9 @@ header <- dashboardHeader(
   titleWidth =270,
   title = "Seabird Bycatch ERM",
   tags$li(class = "dropdown", actionLink("appvrsn", label = tags$b(CURRENT.VERSION), style = "font-size: 19px")), 
-  tags$li(class = "dropdown", a(icon('github', "fa-2x"), href='https://github.com/', 
+  tags$li(class = "dropdown", a(icon('github', "fa-2x"), href='https://github.com/HiDef-Aerial-Surveying/SNH_seabird_bycatch', 
                                 style = "padding-top: 10px; padding-bottom: 10px", target='_blank', id="lbl_codeLink")),
-  tags$li(class = "dropdown", a(icon('bug', "fa-2x"), href='https://github.com/', #exclamation-circle
+  tags$li(class = "dropdown", a(icon('bug', "fa-2x"), href='https://github.com/HiDef-Aerial-Surveying/SNH_seabird_bycatch/issues', #exclamation-circle
                                 style = "padding-top: 10px; padding-bottom: 10px", target='_blank', id="lbl_issuesLink"))
   
   # tags$li(class = "dropdown", actionLink("bookmark_btt", label = NULL, icon("bookmark", "fa-2x", lib = "font-awesome"),
@@ -95,27 +95,13 @@ sidebar <- dashboardSidebar(
 
 body <- dashboardBody(
   fluidRow(
-    box(title='Fisheries Information',
+    box(id='fish_info_id',
+        title='Fisheries Information',
         width = 4,
         status= 'warning',
         solidHeader = TRUE,
-        sliderInput(width = "85%",
-                    inputId = "slideInput_gearLength",
-                    label = label.help("Total length of gear (m)", "lbl_gearLength"),
-                    value = 10, min = 1,max=300, step = 1),
-        bsTooltip(id = "lbl_gearLength",
-                  title = paste0("Total length of gear.  ",
-                                 "Total length of nets or hook lines (depending on type of gear being used)"),
-                  options = list(container = "body"), placement = "right", trigger = "hover"),
+        uiOutput('fisheries_info')
         
-        numericInput(width = "85%",
-                    inputId = "numInput_timeFishing",
-                    label = label.help("Approximate total fishing effort (hrs)", "lbl_timeFishing"),
-                    value = 10, min = 1, step = 1),
-        bsTooltip(id = "lbl_timeFishing",
-                  title = paste0("Approximate time fishing.  ",
-                                 "Estimate the total amount of time gear will be in the water for entire fishing season"),
-                  options = list(container = "body"), placement = "right", trigger = "hover")
     ),
     box(
         title='Species Dive Parameters',

@@ -117,7 +117,8 @@ label.help <- function(label, id){
 
 
 Dive_dens.plot <- function(avg,mx,mn=0,stdev){
-  X <- data.frame(x=rtruncnorm(1000,a=mn,b=mx,mean=avg,sd=stdev))
+  set.seed(99)
+  X <- data.frame(x=rtruncnorm(10000,a=mn,b=mx,mean=avg,sd=stdev))
   
   Ylim <- max(density(X$x)$y) + max(density(X$x)$y)*.25
   
@@ -162,6 +163,125 @@ names(Dive.data) <- Header
 
 
 
+##########################################################################################################
+#### These are the varying UI elements that get created depending on what fishing gear is selected
+###################################################################################################
+
+### Parameters for trawl fisheries
+
+Trawl.Gear <- tagList(
+  sliderInput(width = "85%",
+              inputId = "slideInput_gearLength",
+              label = label.help("Total length of gear (m)", "lbl_gearLength"),
+              value = 10, min = 1,max=300, step = 1),
+  bsTooltip(id = "lbl_gearLength",
+            title = paste0("Total length of gear.  ",
+                           "Total length of nets or hook lines (depending on type of gear being used)"),
+            options = list(container = "body"), placement = "right", trigger = "hover"),
+  
+  numericInput(width = "85%",
+               inputId = "numInput_timeFishing",
+               label = label.help("Approximate total fishing effort (hrs)", "lbl_timeFishing"),
+               value = 10, min = 1, step = 1),
+  bsTooltip(id = "lbl_timeFishing",
+            title = paste0("Approximate time fishing.  ",
+                           "Estimate the total amount of time gear will be in the water for entire fishing season"),
+            options = list(container = "body"), placement = "right", trigger = "hover"),
+  
+  
+  numericInput(width = "85%",
+               inputId = "numInput_netDepth",
+               label = label.help("Depth of top of net (m)", "lbl_netDepth"),
+               value = 10, min = 1, step = 1),
+  bsTooltip(id = "lbl_netDepth",
+            title = "Depth of the top of the trawl net (m)",
+            options = list(container = "body"), placement = "right", trigger = "hover")
+  
+  
+  
+)
+
+### Parameters for long-line fisheries
+
+Longlines.Gear <- tagList(
+  sliderInput(width = "85%",
+              inputId = "slideInput_gearLength",
+              label = label.help("Total length of gear (m)", "lbl_gearLength"),
+              value = 10, min = 1,max=300, step = 1),
+  bsTooltip(id = "lbl_gearLength",
+            title = paste0("Total length of gear.  ",
+                           "Total length of nets or hook lines (depending on type of gear being used)"),
+            options = list(container = "body"), placement = "right", trigger = "hover"),
+  
+  numericInput(width = "85%",
+               inputId = "numInput_timeFishing",
+               label = label.help("Approximate total fishing effort (hrs)", "lbl_timeFishing"),
+               value = 10, min = 1, step = 1),
+  bsTooltip(id = "lbl_timeFishing",
+            title = paste0("Approximate time fishing.  ",
+                           "Estimate the total amount of time gear will be in the water for entire fishing season"),
+            options = list(container = "body"), placement = "right", trigger = "hover"),
+  numericInput(width = "85%",
+               inputId = "numInput_totalHooks",
+               label = label.help("Number of hooks", "lbl_totalHooks"),
+               value = 10, min = 1, step = 1),
+  bsTooltip(id = "lbl_totalHooks",
+            title = "Total number of hooks used per deployed line",
+            options = list(container = "body"), placement = "right", trigger = "hover")
+)
+
+### Parameters for gillnets
+
+
+Gillnet.Gear <- tagList(
+  sliderInput(width = "85%",
+              inputId = "slideInput_gearLength",
+              label = label.help("Total length of gear (m)", "lbl_gearLength"),
+              value = 10, min = 1,max=300, step = 1),
+  bsTooltip(id = "lbl_gearLength",
+            title = paste0("Total length of gear.  ",
+                           "Total length of nets or hook lines (depending on type of gear being used)"),
+            options = list(container = "body"), placement = "right", trigger = "hover"),
+  
+  numericInput(width = "85%",
+               inputId = "numInput_timeFishing",
+               label = label.help("Approximate total fishing effort (hrs)", "lbl_timeFishing"),
+               value = 10, min = 1, step = 1),
+  bsTooltip(id = "lbl_timeFishing",
+            title = paste0("Approximate time fishing.  ",
+                           "Estimate the total amount of time gear will be in the water for entire fishing season"),
+            options = list(container = "body"), placement = "right", trigger = "hover")
+)
+
+
+### Parameters for purse seine fisheries
+
+Purseseine.Gear <- tagList(
+  
+  sliderInput(width = "85%",
+              inputId = "slideInput_gearLength",
+              label = label.help("Diameter of nets when deployed (m)", "lbl_gearDiameter"),
+              value = 10, min = 1,max=300, step = 1),
+  bsTooltip(id = "lbl_gearDiameter",
+            title = "Diameter of the purse seine when fully deployed",
+            options = list(container = "body"), placement = "right", trigger = "hover"),
+  
+  numericInput(width = "85%",
+               inputId = "numInput_netDeploy",
+               label = label.help("Total time per deployment (hrs)", "lbl_netDeploy"),
+               value = 10, min = 1, step = 1),
+  bsTooltip(id = "lbl_netDeploy",
+            title = "Total time for a single net deployment",
+            options = list(container = "body"), placement = "right", trigger = "hover"),
+  
+  numericInput(width = "85%",
+               inputId = "numInput_numDeploy",
+               label = label.help("Total number of deployments", "lbl_numDeploy"),
+               value = 10, min = 1, step = 1),
+  bsTooltip(id = "lbl_numDeploy",
+            title = "Total number of deployments per trip",
+            options = list(container = "body"), placement = "right", trigger = "hover")
+)
 
 
 

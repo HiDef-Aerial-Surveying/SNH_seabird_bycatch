@@ -3,8 +3,8 @@ function(input, output, session) {
   shinyjs::disable("numInput_PointEstimate")
   shinyjs::disable("speciesName")
   shinyjs::disable("sciName")
-  shinyjs::disable("diveDepth")
-  shinyjs::disable("diveDuration")
+  #shinyjs::disable("diveDepth")
+  #shinyjs::disable("diveDuration")
   
   ## Observe the selection of a species and then change the input parameters in the box
   observeEvent(input$selectSpecs,{
@@ -32,10 +32,7 @@ function(input, output, session) {
   
   
   newdata <- reactive({
-    
-    out <- data.frame(depth = input$diveDepth,maxdepth = input$diveDepthMax,duration = input$diveDuration,
-                      maxduration = input$diveDurationMax,depthsd = input$diveDepthStd,durationsd = input$diveDurationStd)
-    
+    out <- data.frame(depth = input$diveDepth,maxdepth = input$diveDepthMax,depthsd = input$diveDepthStd)
   })
   
   observe({
@@ -50,4 +47,22 @@ function(input, output, session) {
   observeEvent(input$appvrsn, {
     showModal(version.notes)
   })
+  
+  
+  observeEvent(input$selectGear,{
+    
+    if(input$selectGear == 'Purse seine'){
+      output$fisheries_info <- renderUI({Purseseine.Gear})
+    }else if(input$selectGear == 'Gill net'){
+      output$fisheries_info <- renderUI({Gillnet.Gear})
+    }else if(input$selectGear == 'Trawl'){
+      output$fisheries_info <- renderUI({Trawl.Gear})
+    }else if(input$selectGear == 'Long-line'){
+      output$fisheries_info <- renderUI({Longlines.Gear})
+    }
+    
+    
+  })
+  
+  
 }
