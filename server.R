@@ -12,15 +12,42 @@ function(input, output, session) {
     selfrm <- Dive.data[tolower(Dive.data$Species) == tolower(input$selectSpecs),]
     scinm <- as.character(selfrm$Sci.name)
     divedp <- as.numeric(as.character(selfrm$Dive.depth))
-    divedu <- as.numeric(as.character(selfrm$Dive.duration))
+    divedpMX <- as.numeric(as.character(selfrm$Max.dive))
+    divedpSD <- as.numeric(as.character(selfrm$Std.dive))
     
+    divedu <- as.numeric(as.character(selfrm$Dive.duration))
+    diveduMX <- as.numeric(as.character(selfrm$Max.duration))
+    diveduSD <- as.numeric(as.character(selfrm$Std.duration))
     
     updateTextInput(session,'speciesName',value=input$selectSpecs)
     updateTextInput(session,'sciName',value=scinm)  
     updateNumericInput(session,'diveDepth',value=divedp)
+    updateNumericInput(session,'diveDepthMax',value=divedpMX)
+    updateNumericInput(session,'diveDepthStd',value=divedpSD)
     updateNumericInput(session,'diveDuration',value=divedu)
+    updateNumericInput(session,'diveDurationMax',value=diveduMX)
+    updateNumericInput(session,'diveDurationStd',value=diveduSD)
     
   })
   
   
+  newdata <- reactive({
+    
+    out <- data.frame(depth = input$diveDepth,maxdepth = input$diveDepthMax,duration = input$diveDuration,
+                      maxduration = input$diveDurationMax,depthsd = input$diveDepthStd,durationsd = input$diveDurationStd)
+    
+  })
+  
+  observe({
+    newdat <- newdata()
+    
+    output$diveDepth_plot <- renderPlot(Dive_dens.plot(avg=newdat$depth,mx=newdat$maxdepth,stdev=newdat$depthsd))  
+    
+  })
+  
+  
+  
+  observeEvent(input$appvrsn, {
+    showModal(version.notes)
+  })
 }

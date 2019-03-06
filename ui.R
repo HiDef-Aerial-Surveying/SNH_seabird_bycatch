@@ -4,7 +4,7 @@ header <- dashboardHeader(
   
   titleWidth =270,
   title = "Seabird Bycatch ERM",
-  tags$li(class = "dropdown", actionLink("appvrsn", label = tags$b("v0.0.1"), style = "font-size: 19px")), 
+  tags$li(class = "dropdown", actionLink("appvrsn", label = tags$b(CURRENT.VERSION), style = "font-size: 19px")), 
   tags$li(class = "dropdown", a(icon('github', "fa-2x"), href='https://github.com/', 
                                 style = "padding-top: 10px; padding-bottom: 10px", target='_blank', id="lbl_codeLink")),
   tags$li(class = "dropdown", a(icon('bug', "fa-2x"), href='https://github.com/', #exclamation-circle
@@ -96,7 +96,7 @@ sidebar <- dashboardSidebar(
 body <- dashboardBody(
   fluidRow(
     box(title='Fisheries Information',
-        width = 6,
+        width = 4,
         status= 'warning',
         solidHeader = TRUE,
         sliderInput(width = "85%",
@@ -119,18 +119,31 @@ body <- dashboardBody(
     ),
     box(
         title='Species Dive Parameters',
-        width = 6,
+        width = 8,
         status= 'success',
         collapsible= TRUE,
         solidHeader = TRUE,
         column(4,
-               textInput(inputId='speciesName',label='Species'),
-               textInput(inputId='sciName',label='Scientific Name'),
-               numericInput(inputId = 'diveDepth',label='Mean dive depth (m)',value=NA),
-               numericInput(inputId = 'diveDuration',label='Mean dive duration (s)',value=NA)       
+               fluidRow(
+                  column(12,
+                         textInput(inputId='speciesName',label='Species'),
+                         textInput(inputId='sciName',label='Scientific Name'))
+               ),
+               fluidRow(
+                 column(6,
+                        numericInput(inputId = 'diveDepth',label='Mean dive depth (m)',value=0),
+                        numericInput(inputId = 'diveDepthMax',label='Max dive depth (m)',value=0),
+                        numericInput(inputId = 'diveDepthStd',label='Stdev dive depth',value=0)
+                        ),
+                 column(6,
+                        numericInput(inputId = 'diveDuration',label='Mean dive duration (s)',value=0),       
+                        numericInput(inputId = 'diveDurationMax',label='Max dive duration (s)',value=0),
+                        numericInput(inputId = 'diveDurationStd',label='Stdev dive duration',value=0)
+                        )
+               )
                ),
         column(8,
-               p('Graphical display showing distribution of dives around the mean for this species')
+               plotOutput('diveDepth_plot')
                )
         
     ),
