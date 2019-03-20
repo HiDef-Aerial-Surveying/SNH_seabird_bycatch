@@ -42,3 +42,17 @@ version.notes <- modalDialog(
   
 )
 
+
+version.notes <- modalDialog(
+  h2('v0.0.4'),
+  tags$ul(
+    tags$li('Added plot showing simulated dive profile versus depth of various gears'),
+    tags$li('Added controls for gear type'),
+    tags$li('Added functions for performing the ERM but not integrated into front end yet'),
+    tags$li('Proportion of simulated dives that fall within the range of the gear added to plot'),
+    tags$li('Improved speed and functionality of the polygons on map by simplifying polygons')
+  ),
+  
+  title = 'Version notes'
+  
+)

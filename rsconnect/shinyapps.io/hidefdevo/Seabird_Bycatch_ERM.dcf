@@ -5,8 +5,8 @@ account: hidefdevo
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 749136
-bundleId: 1942891
+bundleId: 1953219
 url: https://hidefdevo.shinyapps.io/Seabird_Bycatch_ERM/
-when: 1552670004.39883
+when: 1553097167.49781
 asMultiple: FALSE
 asStatic: FALSE

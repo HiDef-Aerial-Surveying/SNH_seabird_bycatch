@@ -21,6 +21,8 @@ function(input, output, session) {
       diveduMX <- as.numeric(as.character(selfrm$Max.duration))
       diveduSD <- as.numeric(as.character(selfrm$Std.duration))
       
+      numdivs <- as.numeric(as.character(selfrm$Dives.per.day))
+      
       updateTextInput(session,'speciesName',value=input$selectSpecs)
       updateTextInput(session,'sciName',value=scinm)  
       updateNumericInput(session,'diveDepth',value=divedp)
@@ -29,6 +31,8 @@ function(input, output, session) {
       updateNumericInput(session,'diveDuration',value=divedu)
       updateNumericInput(session,'diveDurationMax',value=diveduMX)
       updateNumericInput(session,'diveDurationStd',value=diveduSD)
+      updateNumericInput(session,'DivesPerDay',value=numdivs)
+      
     }
     
   })
@@ -63,6 +67,103 @@ function(input, output, session) {
       
     }
   })
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  fish.effort <- reactive({
+    if(input$selectGear == 'Gill net'){
+      xx <- Fishing.effort(length = input$slideInput_gearLength,
+                           height = input$slideInput_gearHeight,
+                           deployment.time = input$numInput_timeFishing,
+                           gear.type = 'Gill net')  
+    }else if(input$selectGear == 'Trawl'){
+      xx <- Fishing.effort(length = input$slideInput_gearLength,
+                           height = input$slideInput_gearHeight,
+                           deployment.time = input$numInput_timeFishing,
+                           gear.type = 'Trawl')
+    }else if(input$selectGear == 'Long-line'){
+      xx <- Fishing.effort(deployment.time = input$numInput_timeFishing,
+                           gear.type = 'Long-line',
+                           num.hooks = input$numInput_totalHooks)
+    }else if(input$selectGear == 'Purse seine'){
+      xx <- Fishing.effort(net.diameter = input$slideInput_gearLength,
+                           height = input$slideInput_gearHeight,
+                           deployment.time = input$numInput_timeFishing,
+                           gear.type = 'Purse seine')
+    }
+    
+    return(xx)
+  })
+  
+  birdAvailability <- reactive({
+    xx <- Bird.availability(dive.duration=input$diveDuration ,dives.per.day=input$DivesPerDay , perc.depth=input$proportion_birds_available )
+    return(xx)
+  })
+  
+  
+  bycatch.estimate.breed <- reactive({
+    xx <- input$numInput_Depth_Density_breed * input$numInput_Fish_Effort * input$numInput_Bird_Availability * 86400
+  })
+  
+  bycatch.estimate.nonbreed <- reactive({
+    xx <- input$numInput_Depth_Density_nonbreed * input$numInput_Fish_Effort * input$numInput_Bird_Availability * 86400
+  })
+  
+
+  breed_sdens <- reactive({input$breedDensitySurface})
+  nonbreed_sdens <- reactive({input$nonbreedDensitySurface})
+  
+  observe({
+    dd <- newdata()
+    breedDENS <-  loadfunction(Depth.density(surf.dens=breed_sdens(),max.dive.depth = dd$maxdepth))
+    nonbreedDENS <- loadfunction(Depth.density(surf.dens=nonbreed_sdens(),max.dive.depth = dd$maxdepth))
+    
+    updateNumericInput(session,'nonbreedDensityUnderwater',value=nonbreedDENS)
+    updateNumericInput(session,'breedDensityUnderwater',value=breedDENS)
+    
+    })
+  
+  
+  
+  breed_ddens <- reactive({input$breedDensityUnderwater})
+  nonbreed_ddens <- reactive({input$nonbreedDensityUnderwater})
+  
+  
+  loadfunction <- function(value){
+    if(length(value)>0){
+      x <- signif(value,4)
+    }else{
+      x <- 0
+    }
+    return(x)
+  }
+  
+  
+  observe({
+    bycatch.b <- loadfunction(bycatch.estimate.breed())
+    bycatch.nb <- loadfunction(bycatch.estimate.nonbreed())
+    bdens <- loadfunction(breed_ddens())
+    nbdens <- loadfunction(nonbreed_ddens())
+    fisheffort <- loadfunction(fish.effort())
+    birdavail <- loadfunction(birdAvailability())
+    
+    updateNumericInput(session,'numInput_Depth_Density_breed',value=bdens)
+    updateNumericInput(session,'numInput_Depth_Density_nonbreed',value=nbdens)
+    updateNumericInput(session,'numInput_Fish_Effort',value=fisheffort)
+    updateNumericInput(session,'numInput_Bird_Availability',value=birdavail)
+    updateNumericInput(session,'numInput_PointEstimate_breed',value=bycatch.b)
+    updateNumericInput(session,'numInput_PointEstimate_nonbreed',value=bycatch.nb)
+  })
+  
+  
+  
   
   
   observe({
@@ -103,11 +204,15 @@ function(input, output, session) {
     
     nn <- grep(place,names(non_breeding_table))
     nb_density <- non_breeding_table[tolower(non_breeding_table$Species) == tolower(input$selectSpecs),nn]
+    nb_density_sd <- non_breeding_table_sd[tolower(non_breeding_table_sd$Species) == tolower(input$selectSpecs),nn]
+    
     
     bn <- grep(place,names(breeding_table))
     b_density <- breeding_table[tolower(breeding_table$Species) == tolower(input$selectSpecs),bn]
+    b_density_sd <- breeding_table_sd[tolower(breeding_table_sd$Species) == tolower(input$selectSpecs),bn]
     
-    tabout <- data.frame(a=bseason,b=nbseason,c=nb_density,d=b_density)
+    
+    tabout <- data.frame(a=bseason,b=nbseason,c=nb_density,d=b_density,c_sd=nb_density_sd,d_sd=b_density_sd)
     return(tabout)
   })
   
@@ -124,15 +229,26 @@ function(input, output, session) {
       dive <- get.dive()
       dat <- spatTemp_data()
       
-      b_dens <- signif(Depth.density(surf.dens=dat$d,net.depth=50, max.dive.depth=dive),3)
-      nb_dens <- signif(Depth.density(surf.dens=dat$c,net.depth=50 ,max.dive.depth=dive),3)
+      b_dens <- signif(Depth.density(surf.dens=dat$d, max.dive.depth=dive),3)
+      nb_dens <- signif(Depth.density(surf.dens=dat$c, max.dive.depth=dive),3)
+      b_dens_sd <- signif(Depth.density(surf.dens=dat$d_sd, max.dive.depth=dive),3)
+      nb_dens_sd <- signif(Depth.density(surf.dens=dat$c_sd, max.dive.depth=dive),3)
+      
       
       output$breeding_density_Surface <- renderUI({
-        numericInput(inputId = 'breedDensitySurface',label=HTML('Density at surface (birds/km<sup>2</sup>)'),value=dat$d)
+        tagList(
+          numericInput(inputId = 'breedDensitySurface',label=HTML('Density at surface (birds/km<sup>2</sup>)'),value=dat$d),
+          numericInput(inputId = 'breedDensitySurfaceSD',label=HTML('Standard deviation'),value=dat$d_sd)
+        )
+        
       })
       
       output$nonbreeding_density_Surface <- renderUI({
-        numericInput(inputId = 'nonbreedDensitySurface',label=HTML('Density at surface (birds/km<sup>2</sup>)'),value=dat$c)
+        tagList(
+          numericInput(inputId = 'nonbreedDensitySurface',label=HTML('Density at surface (birds/km<sup>2</sup>)'),value=dat$c),  
+          numericInput(inputId = 'nonbreedDensitySurfaceSD',label=HTML('Standard deviation'),value=dat$c_sd)
+        )
+        
       })
       
       output$nb_Season <- renderUI({
@@ -141,6 +257,10 @@ function(input, output, session) {
           numericInput(inputId='nonbreedDensityUnderwater',
                        label=HTML('Mean density below surface (birds/m<sup>3</sup>)'),
                        value=nb_dens,
+                       step=0.000001),
+          numericInput(inputId='nonbreedDensityUnderwaterSD',
+                       label=HTML('Standard deviation density below surface'),
+                       value=nb_dens_sd,
                        step=0.000001)
           #HTML(paste0("<h3 style=text-align:center>",nb_dens," birds/m<sup>3</sup></h3>"))
         )
@@ -154,6 +274,10 @@ function(input, output, session) {
           numericInput(inputId='breedDensityUnderwater',
                        label=HTML('Mean density below surface (birds/m<sup>3</sup>)'),
                        value=b_dens,
+                       step=0.000001),
+          numericInput(inputId='breedDensityUnderwaterSD',
+                       label=HTML('Standard deviation density below surface'),
+                       value=b_dens_sd,
                        step=0.000001)
         )
 

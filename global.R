@@ -3,23 +3,26 @@
 #########################################
 
 ### Whenever the script is published to the web, change this to the latest version and update the version notes
-CURRENT.VERSION <- 'v0.0.4'
+CURRENT.VERSION <- 'v0.0.5'
 
 #########################################
+
 
 version.notes <- modalDialog(
   h2(CURRENT.VERSION),
   tags$ul(
-    tags$li('Added plot showing simulated dive profile versus depth of various gears'),
-    tags$li('Added controls for gear type'),
-    tags$li('Added functions for performing the ERM but not integrated into front end yet'),
-    tags$li('Proportion of simulated dives that fall within the range of the gear added to plot'),
-    tags$li('Improved speed and functionality of the polygons on map by simplifying polygons')
+    tags$li('Added data for number of dives per day for several species'),
+    tags$li('Standard deviation input parameters have been added to the front end'),
+    tags$li('Calculations for Dd, Fe and Ba for breeding and non-breeding seasons integrated'),
+    tags$li('Values are now all reactive and point estimates in the output box now change as values change')
   ),
-  
+
   title = 'Version notes'
-  
+
 )
+
+
+
 
 ############################################################################
 
@@ -180,14 +183,14 @@ Dive_dens.plot <- function(Density.prof,mx=10,avg=10,plot.gear=FALSE,gear.top=0,
 ### 11 Mar 2019:  For now we use the basic model of assuming equal density through the water column
 ###               Will change this when functions are more solidified
 
-Depth.density <- function(surf.dens,net.depth,gear.type='Gill net',max.dive.depth){
+Depth.density <- function(surf.dens,max.dive.depth){
   #D = DAQ2R/2R = Wilson et al (2007)
   #surf.dens in km2  (will be converted to m2)
-  d <- net.depth
+  #d <- net.depth
   Da <- surf.dens/1000000
-  Qd <-  d/max.dive.depth
-  
-  D <- Da * Qd / d  
+  d <-  max.dive.depth
+   
+  D <- Da / d  
   
   return(D)
 }
@@ -195,82 +198,61 @@ Depth.density <- function(surf.dens,net.depth,gear.type='Gill net',max.dive.dept
 
 
 
-######## Gill net forumlae
+######## Fishing effort functions based on chosen gear type
 
-Gillnet.effort <- function(length,depth,deployment.time,number.deployments){
-  # Length of net fully deployed in M
-  # Width of net (i.e. DEPTH of net from top to bottom)
-  # Total time per deployment
+Fishing.effort <- function(length=NULL,height=NULL,deployment.time=NULL,number.deployments=NULL,gear.type=NULL,
+                           net.diameter=NULL,num.hooks=NULL){
+  # Length of net fully deployed in Meters
+  # height of net (i.e. from top to bottom)
+  # Total time per deployment in hours (will be converted to seconds)
   # Total number of deployments
   
-  ### For this, we assume that the net is covering a block of 1m (width)
-  ### This means that Net.area actually becomes m^3.  So... a net of 90m x 30m depth = 2700 m^2 at 1m width = 2700 m^3
-  ### We assume this to stay in line with the fact that we are working in number of birds/m^3
+  if(gear.type=='Gill net'){
+    ### For this, we assume that the net is covering a block of 1m (width)
+    ### This means that Net.area actually becomes m^3.  So... a net of 90m x 30m depth = 2700 m^2 at 1m width = 2700 m^3
+    ### We assume this to stay in line with the fact that we are working in number of birds/m^3
+    Net.area <- length * height
+    Effort <- Net.area#/(deployment.time*3600)
+  }else if(gear.type == 'Trawl'){
+    
+    Net.area <- length * height
+    Net.area.covered <- Net.area#/(deployment.time * 3600)
+    Effort <- Net.area.covered
+    
+  }else if(gear.type == 'Purse seine'){
+    ### Here we assume that the purse seine acts like a gill net. We calculate the length of that net
+    ### using the diameter of the seine.
+    net.length <- 2*pi*net.diameter
+    Net.area <- net.length*height
+    Effort <- Net.area#/(deployment.time * 3600)
+    
+  }else if(gear.type == 'Long-line'){
+    ### We assign a volume of 1m3 to each hook
+    gear.area <- num.hooks
+    Effort <- gear.area#/(deployment.time * 3600)
+    
+  }
   
-  Net.area <- length * depth
   
-  Effort <- (Net.area/deployment.time) * number.deployments
   return(Effort)
 }
+
+###################################################################################################
 
 
 Bird.availability <- function(dive.duration,dives.per.day,perc.depth){
   ## In here, there will be factors that affect the likilhood that a bird will get caught up in the nets / hooks
-  ## Availability bias can be used here - gives idea of how much time birds spend underwater
-  
+ 
   dives.per.sec <- dives.per.day / 86400
   
   Ba <- dive.duration * dives.per.sec * perc.depth
   return(Ba)
   
 }
-#   if(gear.type=='Gill net'){
-#     
-#     
-#     
-#   }
 
 
 
-
-
-
-
-
-
-
-
-#Trawl.effort <- function(){}
-
-#Longline.effort <- function(){}
-
-#Purseseine.effort <- function(){}
-
-
-#Bycatch.estimate <- function(d.density,gear.type='Gill net',bootstrap.estimate=FALSE){
-#}
-
-
-
-  # if(gear.type=='Gill net'){
-  #   #D = DaQd / d
-  #   #Da = density at the surface and extrapolated to 1m depth to get a density per m3 
-  #   #d = depth of net from surface to bottom
-  #   #Qd = d / max dive depth  (simple model of equal density through the water column) - NOTE: need to account for bathymetry
-  #   
-  #   Qd <-  d/max.dive.depth
-  #   
-  #   D <- Da * Qd / d  
-  #   
-  #   return(D)
-  # }
-  #}
-
-
-
-
-
-
+#Bycatch.estimate <- function(d.density,gear.type='Gill net',bootstrap.estimate=FALSE){}
 
 
 
@@ -279,15 +261,15 @@ Bird.availability <- function(dive.duration,dives.per.day,perc.depth){
 #### Underlying data ####
 #########################
 
-Header <- c('Species','Sci.name','Dive.depth','Dive.duration','Max.dive','Max.duration','Std.dive','Std.duration')
-COGU <- c('Common guillemot','Uria aalge',42.0,76.0,138.0,202.0,50.2,38.0)
-RAZO <- c('Razorbill','Alca torda',15.0,46.0,140.0,NA,7.10,16.0)
-ATPU <- c('Atlantic Puffin','Fratercula arctica',35.0,27.0,68.0,115.0,15.3,15.0)
-RTDI <- c('Red-throated diver','Gavia stellata',NA,NA,NA,NA,NA,NA)
-COSC <- c('Common scoter','Melanitta nigra',NA,36.0,NA,NA,NA,NA)
-LTDU <- c('Long-tailed duck','Clangula hyemalis',NA,NA,NA,NA,NA,NA)
-NOGA <- c('Northern gannet','Morus bassanus',6.0,9.0,34.0,40.0,7.5,6.9)
-EUSH <- c('European shag','Phalocrocorax aristotelis',27.0,56.0,61.0,163.0,13.8,15.8)
+Header <- c('Species','Sci.name','Dive.depth','Dive.duration','Max.dive','Max.duration','Std.dive','Std.duration','Dives.per.day')
+COGU <- c('Common guillemot','Uria aalge',42.0,76.0,138.0,202.0,50.2,38.0,52)
+RAZO <- c('Razorbill','Alca torda',15.0,46.0,140.0,NA,7.10,16.0,397)
+ATPU <- c('Atlantic Puffin','Fratercula arctica',35.0,27.0,68.0,115.0,15.3,15.0,333)
+RTDI <- c('Red-throated diver','Gavia stellata',NA,NA,NA,NA,NA,NA,NA)
+COSC <- c('Common scoter','Melanitta nigra',NA,36.0,NA,NA,NA,NA,NA)
+LTDU <- c('Long-tailed duck','Clangula hyemalis',NA,NA,NA,NA,NA,NA,NA)
+NOGA <- c('Northern gannet','Morus bassanus',6.0,9.0,34.0,40.0,7.5,6.9,NA)
+EUSH <- c('European shag','Phalocrocorax aristotelis',27.0,56.0,61.0,163.0,13.8,15.8,73.7)
 
 
 Dive.data <- data.frame(do.call('rbind',list(COGU,RAZO,ATPU,RTDI,COSC,LTDU,NOGA,EUSH)))
@@ -298,6 +280,9 @@ names(Dive.data) <- Header
 
 breeding_table <- read.csv('data/breeding_table.csv')
 non_breeding_table <- read.csv('data/nonbreeding_table.csv')
+breeding_table_sd <- read.csv('data/breeding_table_sd.csv')
+non_breeding_table_sd <- read.csv('data/nonbreeding_table_sd.csv')
+
 seasons <- read.csv('data/seasons.csv')
 
 
