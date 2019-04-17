@@ -3,7 +3,7 @@
 #########################################
 
 ### Whenever the script is published to the web, change this to the latest version and update the version notes
-CURRENT.VERSION <- 'v0.1.0'
+CURRENT.VERSION <- 'v0.1.1'
 
 #########################################
 
@@ -11,10 +11,10 @@ CURRENT.VERSION <- 'v0.1.0'
 version.notes <- modalDialog(
   h2(CURRENT.VERSION),
   tags$ul(
-    tags$li('PDF report download option now added.'),
-    tags$li('Background data added where available from Bradbury et al report'),
-    tags$li('Background data added from Robbins thesis on dive behaviour'),
-    tags$li('Report.rmd created and added to package files')
+    tags$li('Distribution sampling added for dive duration in simulation'),
+    tags$li('5% and 95% quantiles calculated for simulated estimates'),
+    tags$li('density histograms created and added to output for simulations'),
+    tags$li('Improved some of the formatting of the PDF reports')
   ),
 
   title = 'Version notes'
@@ -255,6 +255,39 @@ Dive_dens.plot <- function(Density.prof,mx=10,avg=10,plot.gear=FALSE,gear.top=0,
 }
 
 
+
+bootstrapped.plot <- function(BOOTS) {
+  BOOTS <- data.frame(BOOTS)
+  CIS <- ci(BOOTS$BOOTS)
+  QNT <- quantile(BOOTS$BOOTS,c(0.05,0.95))
+  
+  Ylim <- max(density(BOOTS$BOOTS)$y) + max(density(BOOTS$BOOTS)$y)*.25
+  
+  ggplot(data=BOOTS,aes(BOOTS)) + 
+    geom_histogram(aes(y=..density..),
+                   col='grey',
+                   fill='dodgerblue',
+                   alpha=0.4) + 
+    scale_x_continuous(expand=c(0,0))+
+    scale_y_continuous(expand=c(0,0))+
+    coord_cartesian(xlim=c(0,max(BOOTS)),ylim=c(Ylim,0))+
+    xlab('Bird encounters per day')+
+    geom_vline(xintercept=CIS[3],color='red',linetype='solid',size=0.25)+
+    geom_vline(xintercept=CIS[2],color='red',linetype='solid',size=0.25)+
+    geom_vline(xintercept=QNT[1],color='black',linetype='dashed',size=0.25)+
+    geom_vline(xintercept=QNT[2],color='black',linetype='dashed',size=0.25)+
+    
+    geom_hline(aes(yintercept=10000,color='CI',linetype='CI'),size=0.2)+
+    geom_hline(aes(yintercept=10000,color='QT',linetype='QT'),size=0.2)+
+    
+    scale_color_manual(name='',values=c(CI='red',QT='black'),labels=c('95% CI', '5% and 95% quantiles'))+
+    scale_linetype_manual(name='',values=c(CI='solid',QT='dashed'),labels=c('95% CI', '5% and 95% quantiles'))+
+    theme(legend.position='bottom')
+  
+}
+
+
+
 ### We calculate the density, generally, as per Wilson et al 2007. 
 ### Wilson et al. (2007) defines the density in the range of impact as DaQ2R / 2R
 ### Da = Density of animal at any depth
@@ -331,6 +364,10 @@ Bird.availability <- function(dive.duration,dives.per.day,perc.depth){
   
 }
 
+
+
+
+
 ###################################################################################################
 bootstrap.proportions <- function(mn,mx,avg,stdev,boot.size=1000,gear.top=10,gear.bottom=50){
   
@@ -345,11 +382,17 @@ bootstrap.proportions <- function(mn,mx,avg,stdev,boot.size=1000,gear.top=10,gea
 
 
 
-Do.bootstrap <- function(boot.size=1000,prop.avail,dive.duration,dives.per.day,Density.profile,F.effort){
+Do.bootstrap <- function(boot.size=1000,prop.avail,dive.duration,dive.duration.std,dive.duration.max,dives.per.day,Density.profile,F.effort){
   
-  Density <- sample(Density.profile$x,boot.size,replace=TRUE)
+  Density <- sample(Density.profile$x,boot.size,replace=FALSE)
   FishEffort <- rep(F.effort,times=boot.size)
-  BirdAvail <- Bird.availability(dive.duration,dives.per.day,prop.avail)
+  
+  Dive.durations <- data.frame(x=rtruncnorm(10000,a=0,b=dive.duration.max,mean=dive.duration,sd=dive.duration.std))
+  div.dur <- sample(Dive.durations$x,boot.size,replace=FALSE)
+  
+  DF <- data.frame(div.dur, rep(dives.per.day,times=boot.size),prop.avail)
+  
+  BirdAvail <- sapply(1:nrow(DF),function(x) Bird.availability(DF[x,1],DF[x,2],DF[x,3]))
   
   ER <- Density * FishEffort * BirdAvail * 86400
   

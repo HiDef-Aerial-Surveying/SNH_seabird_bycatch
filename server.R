@@ -25,9 +25,15 @@ function(input, output, session) {
   ## Loads up that will be used in the final calculations in the simulation. 
   ## These data will be used to bootstrap the densities by simulating density distributions and sampling from them
   Bootstrap.Data <- reactive({
-    xx <- data.frame(dive.duration=input$diveDuration,dives.per.day=input$DivesPerDay,F.effort=input$numInput_Fish_Effort,
-                     density.mean.b=input$breedDensityUnderwater,density.SD.b=input$breedDensityUnderwaterSD,
-                     density.mean.nb=input$nonbreedDensityUnderwater,density.SD.nb=input$nonbreedDensityUnderwaterSD
+    xx <- data.frame(dive.duration=input$diveDuration,
+                     dive.duration.std=input$diveDurationStd,
+                     dive.duration.max=input$diveDurationMax,
+                     dives.per.day=input$DivesPerDay,
+                     F.effort=input$numInput_Fish_Effort,
+                     density.mean.b=input$breedDensityUnderwater,
+                     density.SD.b=input$breedDensityUnderwaterSD,
+                     density.mean.nb=input$nonbreedDensityUnderwater,
+                     density.SD.nb=input$nonbreedDensityUnderwaterSD
     )
   })
   
@@ -61,6 +67,9 @@ function(input, output, session) {
   ## Loads the surface and underwater densities for breeding and non-breeding seasons
   breed_sdens <- reactive({input$breedDensitySurface})
   nonbreed_sdens <- reactive({input$nonbreedDensitySurface})
+  breed_sdens_sd <- reactive({input$breedDensitySurfaceSD})
+  nonbreed_sdens_sd <- reactive({input$nonbreedDensitySurfaceSD})
+  
   breed_ddens <- reactive({input$breedDensityUnderwater})
   nonbreed_ddens <- reactive({input$nonbreedDensityUnderwater})
   
@@ -305,8 +314,17 @@ function(input, output, session) {
     breedDENS <-  loadfunction(Depth.density(surf.dens=breed_sdens(),max.dive.depth = dd$maxdepth))
     nonbreedDENS <- loadfunction(Depth.density(surf.dens=nonbreed_sdens(),max.dive.depth = dd$maxdepth))
     
+      
+    breedDENS_SD <-  loadfunction(Depth.density(surf.dens=breed_sdens_sd(),max.dive.depth = dd$maxdepth))
+    nonbreedDENS_SD <- loadfunction(Depth.density(surf.dens=nonbreed_sdens_sd(),max.dive.depth = dd$maxdepth))
+    
+    
     updateNumericInput(session,'nonbreedDensityUnderwater',value=nonbreedDENS)
     updateNumericInput(session,'breedDensityUnderwater',value=breedDENS)
+    
+    updateNumericInput(session,'nonbreedDensityUnderwaterSD',value=nonbreedDENS_SD)
+    updateNumericInput(session,'breedDensityUnderwaterSD',value=breedDENS_SD)
+    
     
     })
   
@@ -603,13 +621,15 @@ function(input, output, session) {
         incProgress(1/6,detail='Density profiles generated')
         Sys.sleep(0.5)
 
-        BootOut.b <- Do.bootstrap(boot.size=bootsize,prop.avail=bP,dive.duration=bData$dive.duration,
+        BootOut.b <<- Do.bootstrap(boot.size=bootsize,prop.avail=bP,dive.duration=bData$dive.duration,
+                                  dive.duration.std = bData$dive.duration.std,dive.duration.max = bData$dive.duration.max,
                                   dives.per.day=bData$dives.per.day,F.effort=bData$F.effort,
                                   Density.profile=Density.profile.b)
 
         incProgress(1/6,detail='Bootstrapped breeding season estimates')
         Sys.sleep(0.5)
-        BootOut.nb <- Do.bootstrap(boot.size=bootsize,prop.avail=bP,dive.duration=bData$dive.duration,
+        BootOut.nb <<- Do.bootstrap(boot.size=bootsize,prop.avail=bP,dive.duration=bData$dive.duration,
+                                   dive.duration.std = bData$dive.duration.std,dive.duration.max = bData$dive.duration.max,
                                    dives.per.day=bData$dives.per.day,F.effort=bData$F.effort,
                                    Density.profile=Density.profile.nb)
 
@@ -617,12 +637,14 @@ function(input, output, session) {
         Sys.sleep(0.5)
         b.CIs <- get.cis(BootOut.b)
         nb.CIs <- get.cis(BootOut.nb)
-
+        b.QT <- quantile(BootOut.b,c(0.05,0.95))
+        nb.QT <- quantile(BootOut.nb,c(0.05,0.95))  
+        
         incProgress(1/6,detail='CIs calculated')
         Sys.sleep(0.5)
         b.encounter.estimate <- signif(b.CIs$CIestimate/24 * Fishtime$time.per.deploy * Fishtime$num.deployments,3)
-        b.encounter.estimate.lower <- signif(b.CIs$CIlower/24 * Fishtime$time.per.deploy * Fishtime$num.deployments,3)
-        b.encounter.estimate.upper <- signif(b.CIs$CIupper/24 * Fishtime$time.per.deploy * Fishtime$num.deployments,3)
+        b.encounter.estimate.lower <- signif(b.QT[1]/24 * Fishtime$time.per.deploy * Fishtime$num.deployments,3)
+        b.encounter.estimate.upper <- signif(b.QT[2]/24 * Fishtime$time.per.deploy * Fishtime$num.deployments,3)
 
         b.encounters <- paste0(as.character(b.encounter.estimate),' (',
                                as.character(b.encounter.estimate.lower),'/',
@@ -632,8 +654,8 @@ function(input, output, session) {
         Sys.sleep(0.5)
 
         nb.encounter.estimate <- signif(nb.CIs$CIestimate/24 * Fishtime$time.per.deploy * Fishtime$num.deployments,3)
-        nb.encounter.estimate.lower <- signif(nb.CIs$CIlower/24 * Fishtime$time.per.deploy * Fishtime$num.deployments,3)
-        nb.encounter.estimate.upper <- signif(nb.CIs$CIupper/24 * Fishtime$time.per.deploy * Fishtime$num.deployments,3)
+        nb.encounter.estimate.lower <- signif(nb.QT[1]/24 * Fishtime$time.per.deploy * Fishtime$num.deployments,3)
+        nb.encounter.estimate.upper <- signif(nb.QT[2]/24 * Fishtime$time.per.deploy * Fishtime$num.deployments,3)
 
         nb.encounters <- paste0(as.character(nb.encounter.estimate),' (',
                                 as.character(nb.encounter.estimate.lower),'/',
@@ -666,8 +688,24 @@ function(input, output, session) {
                             label=HTML('Standard error of Encounter rate'),
                             value=b.CIs$CIstderr,
                             step=0.0000001)),
+               
+               disabled(numericInput(inputId='breed_QT_low',
+                                     label=HTML('5% quantile'),
+                                     value=b.QT[1],
+                                     step=0.0000001)),
+               
+               disabled(numericInput(inputId='breed_QT_high',
+                                     label=HTML('95% quantile'),
+                                     value=b.QT[2],
+                                     step=0.0000001)),
+               
 
                hr(),
+               p('Density histogram of simulated bird encounters per day during the breeding season with CIs and quantiles plotted'),
+               plotOutput('breeding_histogram'),
+               
+               hr(),
+               
                h3('Encounter estimate based on total fishing effort'),
                p(paste0(b.encounters,' birds'))
 
@@ -691,8 +729,23 @@ function(input, output, session) {
                             label=HTML('Standard error of Encounter rate'),
                             value=nb.CIs$CIstderr,
                             step=0.0000001)),
+               
+               disabled(numericInput(inputId='nonbreed_QT_low',
+                                     label=HTML('5% quantile'),
+                                     value=nb.QT[1],
+                                     step=0.0000001)),
+               
+               disabled(numericInput(inputId='nonbreed_QT_high',
+                                     label=HTML('95% quantile'),
+                                     value=nb.QT[2],
+                                     step=0.0000001)),
 
                hr(),
+               p('Density histogram of simulated bird encounters per day during the non-breeding season with CIs and quantiles plotted'),
+               plotOutput('nonbreeding_histogram'),
+               
+               hr(),
+               
                h3('Encounter estimate based on total fishing effort'),
                p(paste0(nb.encounters,' birds'))
         ),
@@ -712,8 +765,25 @@ function(input, output, session) {
 
       )
       
+      
+
+      
+      
 
     })
+    
+    output$breeding_histogram <- renderPlot({
+    
+      bootstrapped.plot(BootOut.b)
+    
+    })
+    
+    output$nonbreeding_histogram <- renderPlot({
+      
+      bootstrapped.plot(BootOut.nb)
+      
+    })
+    
   })
   
 
@@ -727,7 +797,13 @@ function(input, output, session) {
                      nonbreed.upper=input$nonbreed_CI_upper,
                      breed.upper=input$breed_CI_upper,
                      nonbreed.stderr=input$nonbreed_CI_stderr,
-                     breed.stderr=input$breed_CI_stderr
+                     breed.stderr=input$breed_CI_stderr,
+                     
+                     breed.lower.qt=input$breed_QT_low,
+                     breed.upper.qt=input$breed_QT_high,
+                     nonbreed.lower.qt=input$nonbreed_QT_low,
+                     nonbreed.upper.qt=input$nonbreed_QT_high
+                     
                    )
     
   })

@@ -163,6 +163,161 @@ write.csv(WIN.mean,'data/nonbreeding_table.csv',row.names=F)
 write.csv(WIN.sd,'data/nonbreeding_table_sd.csv',row.names=F)
 
 
+####################################################################################################################
+## testing the model with raw code
+
+F.effort <- 2700  ## A gill net that is 90m long by 30m deep
+geartop <- 20
+gearbottm <- 50
+max.dive <- 138
+max.dive.std <- 60
+mean.dive <- 52
+dives.p.day <- 50
+dive.duration <- 200
+dive.duration.std <- 50
+dive.duration.max <- 300
+surf.density <- 5000
+surf.density.sd <- 2000
+
+underwater.density <- Depth.density(surf.density,max.dive)
+underwater.density.sd <- Depth.density(surf.density.sd,max.dive)
+
+Density.profile <- data.frame(x=rtruncnorm(10000,a=0,b=1,mean=underwater.density,sd=underwater.density.sd))
+
+BPs <- bootstrap.proportions(mn = 0, mx=max.dive,avg=mean.dive,stdev=max.dive.std,gear.top=geartop,gear.bottom=gearbottm)
+
+BOOTS <- Do.bootstrap(1000,BPs,dive.duration,dive.duration.std,dive.duration.max,dives.p.day,Density.profile,F.effort)
+
+
+
+Proportion.available <- function(Density.prof,gear.top,gear.bottom){
+  
+  prop.in.range <- (length(which(Density.prof$x > gear.top & Density.prof$x < gear.bottom)))/10000
+  
+}
+
+
+
+Depth.density <- function(surf.dens,max.dive.depth){
+  Da <- surf.dens/1000000
+  d <-  max.dive.depth
+  
+  D <- Da / d  
+  
+  return(D)
+}
+
+
+
+###################################################################################################
+
+
+Bird.availability <- function(dive.duration,dives.per.day,perc.depth){
+  dives.per.sec <- dives.per.day / 86400
+  Ba <- dive.duration * dives.per.sec * perc.depth
+  return(Ba)
+}
+
+
+###################################################################################################
+bootstrap.proportions <- function(mn,mx,avg,stdev,boot.size=1000,gear.top=10,gear.bottom=50){
+  
+  output <- foreach(i=1:boot.size,.combine='c') %do% {
+    X <- data.frame(x=rtruncnorm(10000,a=mn,b=mx,mean=avg,sd=stdev))
+    #X <- data.frame(x=rtruncnorm(10000,a=0,b=100,mean=60,sd=20))
+    return(Proportion.available(X,gear.top,gear.bottom))
+  }
+  return(output)
+  
+}
+
+
+
+Do.bootstrap <- function(boot.size=1000,prop.avail,dive.duration,dive.duration.std,dive.duration.max,dives.per.day,Density.profile,F.effort){
+  
+  Density <- sample(Density.profile$x,boot.size,replace=FALSE)
+  FishEffort <- rep(F.effort,times=boot.size)
+  
+  Dive.durations <- data.frame(x=rtruncnorm(10000,a=0,b=dive.duration.max,mean=dive.duration,sd=dive.duration.std))
+  div.dur <- sample(Dive.durations$x,boot.size,replace=FALSE)
+  
+  DF <- data.frame(div.dur, rep(dives.per.day,times=boot.size),prop.avail)
+  
+  BirdAvail <- sapply(1:nrow(DF),function(x) Bird.availability(DF[x,1],DF[x,2],DF[x,3]))
+  
+  ER <- Density * FishEffort * BirdAvail * 86400
+  
+  return(ER)
+}
+
+
+get.cis <- function(vals){
+  CIs <- ci(vals)
+  CIestimate <- signif(CIs[1],3)
+  
+  CIlower <- signif(CIs[2],3)
+  if(CIlower < 0){CIlower <- 0}
+  
+  CIupper <- signif(CIs[3],3)
+  CIstderr <- signif(CIs[4],3)
+  
+  return(data.frame(CIestimate,CIlower,CIupper,CIstderr))
+  
+}
+
+
+
+bootstrapped.plot <- function(BOOTS) {
+  BOOTS <- data.frame(BOOTS)
+  CIS <- ci(BOOTS$BOOTS)
+  QNT <- quantile(BOOTS$BOOTS,c(0.05,0.95))
+  
+  Ylim <- max(density(BOOTS$BOOTS)$y) + max(density(BOOTS$BOOTS)$y)*.25
+  
+  ggplot(data=BOOTS,aes(BOOTS)) + 
+    geom_histogram(aes(y=..density..),
+                   col='grey',
+                   fill='dodgerblue',
+                   alpha=0.4) + 
+    scale_x_continuous(expand=c(0,0))+
+    scale_y_continuous(expand=c(0,0))+
+    coord_cartesian(xlim=c(0,max(BOOTS)),ylim=c(Ylim,0))+
+    xlab('Bird encounters per day')+
+    geom_vline(xintercept=CIS[3],color='red',linetype='solid',size=0.25)+
+    geom_vline(xintercept=CIS[2],color='red',linetype='solid',size=0.25)+
+    geom_vline(xintercept=QNT[1],color='black',linetype='dashed',size=0.25)+
+    geom_vline(xintercept=QNT[2],color='black',linetype='dashed',size=0.25)+
+    
+    geom_hline(aes(yintercept=10000,color='CI',linetype='CI'),size=0.2)+
+    geom_hline(aes(yintercept=10000,color='QT',linetype='QT'),size=0.2)+
+    
+    scale_color_manual(name='',values=c(CI='red',QT='black'),labels=c('95% CI', '5% and 95% quantiles'))+
+    scale_linetype_manual(name='',values=c(CI='solid',QT='dashed'),labels=c('95% CI', '5% and 95% quantiles'))+
+    theme(legend.position='bottom')
+  
+}
+
+
+
+  
+
+
+
+ggplot(X,aes(x)) +
+  geom_density(bw='nrd0',adjust=2,fill='lightgoldenrod',alpha=0.4,color='black',size=0.5)+
+  scale_x_continuous(expand=c(0,0))+
+  scale_y_continuous(expand=c(0,0))+
+  coord_cartesian(xlim=c(0,Xmax),ylim=c(Ylim,0))+
+  geom_vline(xintercept=avg,color='red',linetype='dashed',size=0.25)+
+  xlab('Depth (m)')+ylab('')+
+  {if(plot.gear==TRUE)geom_vline(xintercept=gear.top,color='dodgerblue',linetype='solid',size=0.75)}+
+  {if(plot.gear==TRUE)geom_vline(xintercept=gear.bottom,color='dodgerblue',linetype='solid',size=0.75)}+
+  {if(plot.gear==TRUE)geom_hline(aes(yintercept=100,color='gear'),linetype='solid',size=0.75)}+
+  {if(plot.gear==TRUE)scale_color_manual(name='',values=c(gear='dodgerblue'),labels=c('Gear depth'))}+
+  {if(plot.gear==TRUE)coord_flip(ylim=c(Ylim,0))}+
+  {if(plot.gear==TRUE)scale_x_reverse()}+
+  {if(plot.gear==TRUE)theme(legend.position=c(0.5,0.1))}
+
 
 
 

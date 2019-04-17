@@ -102,3 +102,16 @@ version.notes <- modalDialog(
 )
 
 
+
+version.notes <- modalDialog(
+  h2('v0.1.0'),
+  tags$ul(
+    tags$li('PDF report download option now added.'),
+    tags$li('Background data added where available from Bradbury et al report'),
+    tags$li('Background data added from Robbins thesis on dive behaviour'),
+    tags$li('Report.rmd created and added to package files')
+  ),
+  
+  title = 'Version notes'
+  
+)

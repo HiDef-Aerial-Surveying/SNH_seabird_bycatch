@@ -128,9 +128,9 @@ Dive_dens.plot(XX,mx=input$diveDepthMax,avg=input$diveDepth,plot.gear=TRUE,
               gear.top=geartop,gear.bottom=gearbottom)
 ```
 
-We calculate the bird availability (Ba) as the proportion of the generated samples to create the dive profile that fall within the range of the fishing gear. 
+We calculate the bird availability (Ba) as the number of dives per day for an individual multiplied by the mean time per dive, multiplied by the proportion of the generated samples to create the dive profile that fall within the range of the fishing gear. 
 
-**Ba = `r toString(signif(input$numInput_Bird_Availability,3))`**
+**Bird availability (Ba) = `r toString(input$DivesPerDay)` dives x `r toString(input$diveDuration)` seconds/dive x `r toString(input$proportion_birds_available)` = `r toString(signif(input$numInput_Bird_Availability,3))`**  
 
 ## Spatio-temporal parameters
 
@@ -196,18 +196,38 @@ Bootstrapping is performed by generating `r toString(input$bootsize)` dive profi
 The uncertainty in breeding density is integrated by generating a sampled, truncated normal distribution of density at depth (Dd) of `r toString(input$bootsize)` samples using the mean and standard deviation of the density, truncated at density = 0. 
 
 ## Breeding season
-Estimate  = **`r toString(out$breed.estimate)`** birds/day
-Lower 95% CL = **`r toString(out$breed.lower)`** birds/day 
-Lower 95% CL = **`r toString(out$breed.upper)`** birds/day 
-Standard error = **`r toString(out$breed.stderr)`** birds/day
+Estimate  = **`r toString(out$breed.estimate)`** birds/day  
+Lower 95% CL = **`r toString(out$breed.lower)`** birds/day  
+Lower 95% CL = **`r toString(out$breed.upper)`** birds/day   
+Standard error = **`r toString(out$breed.stderr)`** birds/day  
 
+5% Quantile = **`r toString(signif(out$breed.lower.qt,3))`** birds/day   
+95% Quantile = **`r toString(signif(out$breed.upper.qt,3))`** birds/day  
+
+
+Density histogram of bootstrapped encounter rate estimate for the breeding season showing the CI (i.e. estimate of precision of the bootstrapping), and the 5% and 95% quantiles, which in a normally distributed dataset give a better idea of confidence in the estimates.   
+
+``` {r breedingplot, echo=FALSE,fig.height=6,warning=FALSE,results="hide",message=FALSE}
+bootstrapped.plot(BootOut.b)
+```
 
 
 ## Non-breeding season
-Estimate  = **`r toString(out$nonbreed.estimate)`** birds/day  
-Lower 95% CL = **`r toString(out$nonbreed.lower)`** birds/day
-Lower 95% CL = **`r toString(out$nonbreed.upper)`** birds/day
-Standard error = **`r toString(out$nonbreed.stderr)`** birds/day 
+Estimate  = **`r toString(out$nonbreed.estimate)`** birds/day   
+Lower 95% CL = **`r toString(out$nonbreed.lower)`** birds/day  
+Lower 95% CL = **`r toString(out$nonbreed.upper)`** birds/day  
+Standard error = **`r toString(out$nonbreed.stderr)`** birds/day  
+
+5% Quantile = **`r toString(signif(out$nonbreed.lower.qt,3))`** birds/day    
+95% Quantile = **`r toString(signif(out$nonbreed.upper.qt,3))`** birds/day  
+
+Density histogram of bootstrapped encounter rate estimate for the non-breeding season showing the CI (i.e. estimate of precision of the bootstrapping), and the 5% and 95% quantiles, which in a normally distributed dataset give a better idea of confidence in the estimates.  
+
+``` {r nonbreedingplot, echo=FALSE,fig.height=6,warning=FALSE,results="hide",message=FALSE}
+bootstrapped.plot(BootOut.nb)
+```
+
+
 
 ***
 

@@ -293,6 +293,8 @@ body <- dashboardBody(
                    width = 12,
                    status= 'primary',
                    uiOutput('Simulation_Output')
+                   
+                   
                )
         )
 
