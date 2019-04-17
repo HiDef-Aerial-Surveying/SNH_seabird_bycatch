@@ -1,0 +1,232 @@
+---
+title: "Seabird encounter rate model for fishing gear"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+# This report was generated at https://hidefsurveying.shinyapps.io/Seabird_Bycatch
+
+```{r model, collapse=TRUE, echo=FALSE}
+options(digits = 4)
+options(warn=-1)
+
+out <- report.output()
+
+```
+
+
+The encounter rate is calculated using the following formula:
+
+$Er = Dd \times\ Fe \times\ Ba$ 
+
+Where:  
+$Er = Encounter \space\ rate$  
+$Dd = Density \space\ at \space depth$  
+$Fe = Fishing \space\ effort$  
+$Ba = Bird \space\ availability$  
+
+# Input parameters
+
+Fishing gear selected = `r toString(input$selectGear)`  
+Species selected = `r toString(input$selectSpecs)`  
+Region selected = `r toString(input$selectPlace)`  
+
+## Fishing parameters
+
+```{r, echo=FALSE,results='asis'}
+
+
+if(input$selectGear == 'Purse seine'){
+  
+  geartop <- 0
+  gearbottom <- input$slideInput_gearDepth
+  cat('Diameter of deployed net =',as.character(input$slideInput_gearLength),'m  \n',
+      'Depth to bottom of net =',as.character(input$slideInput_gearDepth),'m  \n',
+      'Total time per deployment =',as.character(input$numInput_timeFishing),'hrs  \n',
+      'Total number of deployments =',as.character(input$numInput_numDeployments),'  \n  \n',
+      'Although a purse seine is more of an inverted dome, we assume it acts like a gill net.',
+      'So we calculate the circumference of the purse seine net and multiply by the depth to get area in m^2^',
+      'and assume that birds within 1m of the net will encounter it.  \n  \n'
+      )
+  
+  surf.area <- 2*pi*(input$slideInput_gearLength/2)
+  Effort <- surf.area*input$slideInput_gearDepth
+  
+  cat(' **Fe =','2 x pi x ',paste('(',as.character(input$slideInput_gearLength),'/2)',sep=''),'x',as.character(input$slideInput_gearDepth),'x 1m =',as.character(signif(Effort,2)),'m^3^/second**  \n')  
+  
+}else if(input$selectGear == 'Gill net'){
+  geartop <- input$slideInput_gearDepth
+  gearbottom <- geartop + input$slideInput_gearHeight
+  
+  cat('Length of gill net =',as.character(input$slideInput_gearLength),'m  \n',
+      'Height of gill net =',as.character(input$slideInput_gearHeight),'m  \n',
+      'Depth to top of net =',as.character(input$slideInput_gearDepth),'m  \n',
+      'Total time per deployment =',as.character(input$numInput_timeFishing),'hrs  \n',
+      'Total number of deployments =',as.character(input$numInput_numDeployments),'  \n  \n',
+      'To get a volume fished per second, we assume that a bird that occurs within 1m of the net is an encounter, ',
+      'so, we multiply the area by 1m to get a volume fished per second.  \n  \n'
+      )
+  Effort <- input$slideInput_gearLength * input$slideInput_gearHeight
+  cat(' **Fe =',as.character(input$slideInput_gearLength),'x',as.character(input$slideInput_gearHeight),'x 1m =',as.character(Effort),'m^3^/second**  \n')
+  
+}else if(input$selectGear == 'Trawl'){
+  geartop <- input$slideInput_gearDepth
+  gearbottom <- geartop + input$slideInput_gearHeight
+  
+  cat('Length of trawl mouth =',as.character(input$slideInput_gearLength),'m  \n',
+      'Height of trawl mouth =',as.character(input$slideInput_gearHeight),'m  \n',
+      'Depth to top of trawl mouth =',as.character(input$slideInput_gearDepth),'m  \n',
+      'Total time per deployment =',as.character(input$numInput_timeFishing),'hrs  \n',
+      'Total number of deployments =',as.character(input$numInput_numDeployments),'  \n  \n',
+      'We assume an average trawl speed of **15 km/hr** which translates to approx **4.2 m/s**.',
+      'Therefore, we multiply the trawl mouth area by 4.2 to get a volume fished per second  \n  \n'
+      )
+  
+    Effort <- input$slideInput_gearLength * input$slideInput_gearHeight * 4.2
+    cat(' **Fe =',as.character(input$slideInput_gearLength),'x',as.character(input$slideInput_gearHeight),'x 4.2m/s =',as.character(Effort),'m^3^/second**  \n')
+    
+}else if(input$selectGear == 'Long-line'){
+  geartop <- input$slideInput_gearDepth - 0.5
+  gearbottom <- input$slideInput_gearDepth + 0.5
+  cat('Length of long-line =',as.character(input$slideInput_gearLength),'m  \n',
+      'Number of hooks =',as.character(input$numInput_totalHooks),'  \n',
+      'Depth to top of hooks =',as.character(input$slideInput_gearDepth),'m  \n',
+      'Total time per deployment =',as.character(input$numInput_timeFishing),'hrs  \n',
+      'Total number of deployments =',as.character(input$numInput_numDeployments),'  \n  \n',
+      'To calculate area fished per second we assume that birds that end up within 1m of a hook is an encounter. ',
+      'Therefore, we multiply the number of hooks by 1m^3^ and that becomes our area fished per second.  \n  \n'
+      )
+  Effort <- input$numInput_totalHooks
+  cat(' **Fe =',as.character(Effort),'x 1m^3^ =',as.character(Effort),'m^3^/second**  \n')
+}
+
+```
+
+
+## Species dive parameters
+
+Mean dive depth = `r toString(input$diveDepth)` m  
+Max dive depth = `r toString(input$diveDepthMax)` m  
+Standard deviation of dive depth = `r toString(input$diveDepthStd)` m  
+
+
+Mean dive duration = `r toString(input$diveDuration)` s  
+Number of dives per day = `r toString(input$DivesPerDay)`  
+                 
+
+Depth to top of gear = `r toString(geartop)` m  
+Depth to bottom of gear = `r toString(gearbottom)` m  
+
+***
+
+**The plot below is the simulated dive profile (as represented by a density histogram) based on the mean, max and std of the dive depth using a truncated normal distribution. The depth of the fishing gear is highlighted on the profile to show the region in the water column where birds can be impacted by it.**    
+
+``` {r dive_plot, echo=FALSE,fig.height=6,warning=FALSE,results="hide",message=FALSE}
+
+XX <- Dive.profile(avg=input$diveDepth,mx=input$diveDepthMax,stdev=input$diveDepthStd)
+Dive_dens.plot(XX,mx=input$diveDepthMax,avg=input$diveDepth,plot.gear=TRUE,
+              gear.top=geartop,gear.bottom=gearbottom)
+```
+
+We calculate the bird availability (Ba) as the proportion of the generated samples to create the dive profile that fall within the range of the fishing gear. 
+
+**Ba = `r toString(signif(input$numInput_Bird_Availability,3))`**
+
+## Spatio-temporal parameters
+
+To calculate the density underwater, we first look at the density of birds on the surface as estimated within the selected region. Two estimates are made:  Breeding and non-breeding seasons. 
+
+We use density at the surface and divide by the maximum dive depth. This assumes no effect of bathymetry. This gives us a three dimensional density in the water column measured by birds/m^3^  
+
+``` {r densities, echo=F}
+bds <- loadfunction(input$breedDensitySurface/1000000)
+bdssd <- loadfunction(input$breedDensitySurfaceSD/1000000)
+
+nbds <- loadfunction(input$nonbreedDensitySurface/1000000)
+nbdssd <- loadfunction(input$nonbreedDensitySurfaceSD/1000000)
+
+
+breedDensUnder <- loadfunction(bds/input$diveDepthMax)
+breedDensUnderSD <- loadfunction(bdssd/input$diveDepthMax)
+
+
+nonbreedDensUnder <- loadfunction(nbds/input$diveDepthMax)
+nonbreedDensUnderSD <- loadfunction(nbdssd/input$diveDepthMax)
+
+```
+
+### Breeding season
+
+Density at the surface = `r toString(input$breedDensitySurface)` birds/km^2^ =  `r toString(input$breedDensitySurface/1000000)` birds/m^2^   
+Std of density of birds at the surface = `r toString(input$breedDensitySurfaceSD)` birds/km^2^ = `r toString(input$breedDensitySurfaceSD/1000000)` birds/m^2^  
+
+**Density underwater = Dd = `r toString(bds)`/`r toString(input$diveDepthMax)` = `r toString(breedDensUnder)` birds/m^3^**    
+Std of density underwater = `r toString(bdssd)`/`r toString(input$diveDepthMax)` = `r toString(breedDensUnderSD)` birds/m^3^
+
+
+### Non-breeding season
+
+Density at the surface = `r toString(input$nonbreedDensitySurface)` birds/km^2^ =  `r toString(input$nonbreedDensitySurface/1000000)` birds/m^2^   
+Std of density of birds at the surface = `r toString(input$nonbreedDensitySurfaceSD)` birds/km^2^ = `r toString(input$nonbreedDensitySurfaceSD/1000000)` birds/m^2^  
+
+**Density underwater = Dd = `r toString(nbds)`/`r toString(input$diveDepthMax)` = `r toString(nonbreedDensUnder)` birds/m^3^**    
+Std of density underwater = `r toString(nbdssd)`/`r toString(input$diveDepthMax)` = `r toString(nonbreedDensUnderSD)` birds/m^3^
+
+***
+
+# Point estimate of encounter rate
+
+Fe = `r toString(loadfunction(Effort))` m^3^/second   
+Dd = `r toString(nonbreedDensUnder)` birds/m^3^  (non-breeding season)  
+Dd = `r toString(breedDensUnder)` birds/m^3^  (breeding season)  
+Ba = `r toString(signif(input$numInput_Bird_Availability,3))`  
+
+Breeding point estimate = Fe x Dd (breeding) x Ba = `r toString(Effort)` x `r toString(breedDensUnder)` x `r toString(signif(input$numInput_Bird_Availability,3))` x 86400 seconds/day = **`r toString(input$numInput_PointEstimate_breed)` birds/day**  
+
+Non-Breeding point estimate = Fe x Dd (non-breeding) x Ba = `r toString(Effort)` x `r toString(nonbreedDensUnder)` x `r toString(signif(input$numInput_Bird_Availability,3))` x 86400 seconds/day = **`r toString(input$numInput_PointEstimate_nonbreed)` birds/day**  
+
+***
+
+# Bootstrapped estimate of encounter rate
+
+Bootstrap estimate based on **`r toString(input$bootsize)`** simulations
+
+Bootstrapping is performed by generating `r toString(input$bootsize)` dive profiles based on mean, max and standard deviation of dive parameters, and calculating bird availability for each simulation. 
+
+The uncertainty in breeding density is integrated by generating a sampled, truncated normal distribution of density at depth (Dd) of `r toString(input$bootsize)` samples using the mean and standard deviation of the density, truncated at density = 0. 
+
+## Breeding season
+Estimate  = **`r toString(out$breed.estimate)`** birds/day
+Lower 95% CL = **`r toString(out$breed.lower)`** birds/day 
+Lower 95% CL = **`r toString(out$breed.upper)`** birds/day 
+Standard error = **`r toString(out$breed.stderr)`** birds/day
+
+
+
+## Non-breeding season
+Estimate  = **`r toString(out$nonbreed.estimate)`** birds/day  
+Lower 95% CL = **`r toString(out$nonbreed.lower)`** birds/day
+Lower 95% CL = **`r toString(out$nonbreed.upper)`** birds/day
+Standard error = **`r toString(out$nonbreed.stderr)`** birds/day 
+
+***
+
+# Estimate of total number of encounters based on given fishing effort
+``` {r encounters, echo=FALSE}
+
+nonbreed.encounter <- input$numInput_timeFishing/24 * input$numInput_numDeployments * out$nonbreed.estimate
+
+breed.encounter <- input$numInput_timeFishing/24 * input$numInput_numDeployments * out$breed.estimate
+
+```
+
+Time per deployment = `r toString(input$numInput_timeFishing)` hrs / 24 hr/day = `r toString(round((input$numInput_timeFishing/24),2))` days
+
+## Breeding season encounters
+
+Total encounters = `r toString(round((input$numInput_timeFishing/24),2))` days x `r toString(input$numInput_numDeployments)` deployments x `r toString(out$breed.estimate)` birds/day = **`r toString(round(breed.encounter,2))` birds**
+
+
+## Non-breeding season encounters
+
+Total encounters = `r toString(round((input$numInput_timeFishing/24),2))` days x `r toString(input$numInput_numDeployments)` deployments x `r toString(out$nonbreed.estimate)` birds/day = **`r toString(round(nonbreed.encounter,2))` birds**

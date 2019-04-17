@@ -1,9 +1,7 @@
-Species,Forth and Tay,North East,Moray Firth,Orkney Islands,Shetland Isles,North Coast,West Highlands,Outer Hebrides,Argyll,Clyde,Solway
-Common Guillemot,0.8,1.62,1.31,2.36,1.8,0.41,0.54,0.23,0.7,1.96,0.38
-Northern Gannet,1.65,0.96,0.63,0.77,2.25,2.1,0.7,1.69,1.6,1.3,0.12
-Atlantic Puffin,0.49,0.55,0.18,1.89,1.58,1.1,1.7,0.45,2.3,0.88,0.06
-Razorbill,1.69,0.59,2.6,1.64,1.87,0.17,0.9,0.58,2.7,0.77,0.23
-Common Scoter,1.88,0.15,0.85,0.52,1.1,0.31,2.9,0.77,0.12,1.6,0.69
-European Shag,0.4,1.1,1.8,2.1,2.4,0.37,2.11,1.38,1.48,0.63,0.78
-Long-tailed Duck,0.19,0.58,1.9,2.77,0.8,1.8,0.17,2.81,0.64,0.26,0.7
-Red-throated Diver,2.3,0.91,1.1,2.19,1.87,1.64,0.12,1.18,1.9,0.68,0.43
+"Species","Argyll","Clyde","Forth.and.Tay","Moray.Firth","North.Coast","North.East","Orkney.Islands","Outer.Hebrides","Shetland.Isles","Solway","West.Highlands"
+"Northern Gannet",0.2,0.21,1.2,0.07,0.39,0.18,0.23,0.58,0.58,0.41,0.53
+"Atlantic Puffin",0.4,0.05,3.73,0.34,0.72,1.47,1.29,1.34,1.69,0.06,1.23
+"Kittiwake",1.15,0.18,1.54,1.46,0.88,1.46,0.87,0.31,0.24,0.31,2.41
+"Common Guillemot",5.18,2.11,3.17,4.84,1.81,2.62,1.55,1.97,1.16,1.7,5.82
+"Razorbill",2.85,0.88,0.45,0.85,0.26,0.24,0.39,0.64,0.11,0.62,1.72
+"Red-throated Diver",0.01,0.15,0.46,0.21,0.01,0.13,0.02,0,0,0.03,0

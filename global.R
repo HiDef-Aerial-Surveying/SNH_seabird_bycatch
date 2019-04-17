@@ -3,7 +3,7 @@
 #########################################
 
 ### Whenever the script is published to the web, change this to the latest version and update the version notes
-CURRENT.VERSION <- 'v0.0.5'
+CURRENT.VERSION <- 'v0.1.0'
 
 #########################################
 
@@ -11,21 +11,86 @@ CURRENT.VERSION <- 'v0.0.5'
 version.notes <- modalDialog(
   h2(CURRENT.VERSION),
   tags$ul(
-    tags$li('Added data for number of dives per day for several species'),
-    tags$li('Standard deviation input parameters have been added to the front end'),
-    tags$li('Calculations for Dd, Fe and Ba for breeding and non-breeding seasons integrated'),
-    tags$li('Values are now all reactive and point estimates in the output box now change as values change')
+    tags$li('PDF report download option now added.'),
+    tags$li('Background data added where available from Bradbury et al report'),
+    tags$li('Background data added from Robbins thesis on dive behaviour'),
+    tags$li('Report.rmd created and added to package files')
   ),
 
   title = 'Version notes'
 
 )
 
+############################################################################
+
+
+how.to <- modalDialog(
+  h1('Using the seabird bycatch application'),
+  hr(),
+  p('There is a substantial amount of baseline data that is loaded automatically as options are selected'),
+  p('These data can be altered as needed to create outputs that can be downloaded as a PDF report'),
+  h3('Step 1: Fisheries information'),
+  tags$ul(
+    tags$li('In the left menu bar, click on the Fisheries information tab to access a drop-down list of fishing gear types'),
+    tags$li('Each gear type will give a different set of parameters to select in the green fisheries information box in the main panel'),
+    tags$li('Information buttons exist over each parameter that can be accessed by hovering over them'),
+    tags$li('The user is required to ensure that these parameters are accurate for the analysis')
+  ),
+  hr(),
+  h3('Step 2: Species information'),
+  tags$ul(
+    tags$li('In the left menu bar, click on the Species information tab to access a drop-down list of species'),
+    tags$li('By default, common guillemot is selected. Selecting a new species will load data into the Species Dive Parameters box. It will also allow for the calculation of the availability parameter which takes into account depth and size of fishing gear selected'),
+    tags$li('Changing values of dive depth and standard deviation will re-calculate the density histogram and also the bird availability parameter'),
+    tags$li('The selected species impacts the estimated density within each region as pre-loaded density estimations will be loaded when a species is selected')
+  ),
+  hr(),
+  h3('Step 3: Spatial information'),
+  tags$ul(
+    tags$li('In the left menu bar, click on the Spatial information tab to access a drop-down list of marine regions'),
+    tags$li('Select the region where the proposed fishing will occur, which will load base data for the selected species into the spatio-temporal information box on the main panel. The region will be highlighted on the map in orange'),
+    tags$li('Changing values in the "density at surface" box will change the estimates below the surface'),
+    tags$li('When running the analysis, the density estimates below the surface are used in the formula, so user is responsible for accuracy of these values'),
+    tags$li('Clicking on the "display marine units" button above the map will load an interactive polygon of Scottish marine administrative units.')
+  ),
+  hr(),
+  h3('Step 4: Run simulation'),
+  tags$ul(
+    tags$li('All the parameters that will be used in the calculation of encounter rate can be found in the Model output box at the bottom of the main panel'),
+    tags$li('These parameters are calculated from the information in the four boxes above'),
+    tags$li('By default, these parameters cannot be altered in the Model output box - the base parameters must be changed to change these values'),
+    tags$li('The user must select the number of bootstrap simulations to run, and then click the button. The higher the bootstrap number the longer it will take to run'),
+    tags$li('Output from the simulation will appear in the simulation output box')
+  ),
+  hr(),
+  
+  h3('Step 5: Download report'),
+  tags$ul(
+    tags$li('Once the simulation has been run, the option to download the report will appear at the bottom of the results screen'),
+    tags$li('Select the format for the report output. PDF report is recommended'),
+    tags$li('Click download, and the file will be downloaded to your Downloads folder'),
+    tags$li('Locate the file and rename if required')
+  ),
+  hr(),
+  
+  
+  h3('Data toggle button'),
+  p('Click on the toggle data boxes button to collapse the data boxes. This is recommended before running the simulations for display purposes')
+)
 
 
 
 ############################################################################
 
+jscode <- paste0("shinyjs.collapse = function(boxid) {",
+                 "$('.' + boxid).closest('.box').find('[data-widget=collapse]').click();}")
+
+
+############################################################################
+
+is_inst <- function(pkg) {
+  nzchar(system.file(package = pkg))
+}
 
 
 
@@ -61,6 +126,8 @@ if(localUse){
                  cowplot,
                  leaflet,
                  leaflet.esri,
+                 gmodels,
+                 foreach,
                  shinycssloaders)
   
   pacman::p_load_gh("trestletech/shinyStore")
@@ -84,12 +151,14 @@ if(localUse){
   library(RColorBrewer)
   library(pracma)
   library(d3heatmap)
+  library(gmodels)
   library(devtools)
   library(shinyStore)
   library(truncnorm)
   library(cowplot)
   library(leaflet)
   library(leaflet.esri)
+  library(foreach)
   library(shinycssloaders)
 }
 
@@ -103,8 +172,8 @@ SMAUs <- readRDS('data/SMAU.rds')
 
 
 species <- sort(c("Common Guillemot", "Northern Gannet","Atlantic Puffin", 
-                  "Razorbill", "Common Scoter","European Shag", "Long-tailed Duck",
-                  "Red-throated Diver"))
+                  "Razorbill", 
+                  "Red-throated Diver"))#"Common Scoter","European Shag", "Long-tailed Duck",
 defaultSpecies<- "Common Guillemot"
 
 
@@ -118,7 +187,7 @@ defaultGear<- "Gill net"
 
 regions <- sort(c("","Forth and Tay","North East", "Moray Firth","Orkney Islands", "Shetland Isles","North Coast",
                   "West Highlands","Outer Hebrides","Argyll","Clyde","Solway"))
-defaultRegion <- ""
+defaultRegion <- "Clyde"
 
 regionPalette <- c('#a50026','#d73027','#f46d43','#fdae61','#fee090','#ffffbf','#e0f3f8','#abd9e9','#74add1','#4575b4','#313695')
   
@@ -129,6 +198,16 @@ regionPalette <- c('#a50026','#d73027','#f46d43','#fdae61','#fee090','#ffffbf','
 
 ###############################################
 ### Helper functions ###
+
+loadfunction <- function(value){
+  if(length(value)>0){
+    x <- signif(value,4)
+  }else{
+    x <- 0
+  }
+  return(x)
+}
+
 
 label.help <- function(label, id){
   HTML(paste0(label, actionLink(id,label=NULL,icon=icon('info-circle'))))
@@ -215,14 +294,16 @@ Fishing.effort <- function(length=NULL,height=NULL,deployment.time=NULL,number.d
     Effort <- Net.area#/(deployment.time*3600)
   }else if(gear.type == 'Trawl'){
     
+    ### Assume ship travels at 4.2 m/s -> meaning the trawl mouth area * 4.2 m/s gives us the volume fished per second
+    
     Net.area <- length * height
-    Net.area.covered <- Net.area#/(deployment.time * 3600)
+    Net.area.covered <- Net.area * 4.2
     Effort <- Net.area.covered
     
   }else if(gear.type == 'Purse seine'){
     ### Here we assume that the purse seine acts like a gill net. We calculate the length of that net
     ### using the diameter of the seine.
-    net.length <- 2*pi*net.diameter
+    net.length <- 2*pi*(net.diameter/2)
     Net.area <- net.length*height
     Effort <- Net.area#/(deployment.time * 3600)
     
@@ -250,9 +331,60 @@ Bird.availability <- function(dive.duration,dives.per.day,perc.depth){
   
 }
 
+###################################################################################################
+bootstrap.proportions <- function(mn,mx,avg,stdev,boot.size=1000,gear.top=10,gear.bottom=50){
+  
+  output <- foreach(i=1:boot.size,.combine='c') %do% {
+    X <- data.frame(x=rtruncnorm(10000,a=mn,b=mx,mean=avg,sd=stdev))
+    #X <- data.frame(x=rtruncnorm(10000,a=0,b=100,mean=60,sd=20))
+    return(Proportion.available(X,gear.top,gear.bottom))
+  }
+  return(output)
+  
+}
 
 
-#Bycatch.estimate <- function(d.density,gear.type='Gill net',bootstrap.estimate=FALSE){}
+
+Do.bootstrap <- function(boot.size=1000,prop.avail,dive.duration,dives.per.day,Density.profile,F.effort){
+  
+  Density <- sample(Density.profile$x,boot.size,replace=TRUE)
+  FishEffort <- rep(F.effort,times=boot.size)
+  BirdAvail <- Bird.availability(dive.duration,dives.per.day,prop.avail)
+  
+  ER <- Density * FishEffort * BirdAvail * 86400
+  
+  return(ER)
+}
+
+
+get.cis <- function(vals){
+  CIs <- ci(vals)
+  CIestimate <- signif(CIs[1],3)
+  
+  CIlower <- signif(CIs[2],3)
+  if(CIlower < 0){CIlower <- 0}
+  
+  CIupper <- signif(CIs[3],3)
+  CIstderr <- signif(CIs[4],3)
+  
+  return(data.frame(CIestimate,CIlower,CIupper,CIstderr))
+  
+}
+###################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -278,10 +410,13 @@ names(Dive.data) <- Header
 
 ################
 
-breeding_table <- read.csv('data/breeding_table.csv')
-non_breeding_table <- read.csv('data/nonbreeding_table.csv')
+breeding_table_mean <- read.csv('data/breeding_table.csv')
+non_breeding_table_mean <- read.csv('data/nonbreeding_table.csv')
 breeding_table_sd <- read.csv('data/breeding_table_sd.csv')
 non_breeding_table_sd <- read.csv('data/nonbreeding_table_sd.csv')
+breeding_table <- read.csv('data/breeding_table_max.csv')
+non_breeding_table <- read.csv('data/nonbreeding_table_max.csv')
+
 
 seasons <- read.csv('data/seasons.csv')
 
@@ -465,7 +600,7 @@ Purseseine.Gear <- tagList(
   
   
   numericInput(width = "85%",
-               inputId = "numInput_netDeploy",
+               inputId = "numInput_timeFishing",
                label = label.help("Total time per deployment (hrs)", "lbl_netDeploy"),
                value = 10, min = 1, step = 1),
   bsTooltip(id = "lbl_netDeploy",
@@ -473,13 +608,14 @@ Purseseine.Gear <- tagList(
             options = list(container = "body"), placement = "right", trigger = "hover"),
   
   numericInput(width = "85%",
-               inputId = "numInput_numDeploy",
+               inputId = "numInput_numDeployments",
                label = label.help("Total number of deployments", "lbl_numDeploy"),
                value = 10, min = 1, step = 1),
   bsTooltip(id = "lbl_numDeploy",
             title = "Total number of deployments per trip",
             options = list(container = "body"), placement = "right", trigger = "hover")
 )
+
 
 
 

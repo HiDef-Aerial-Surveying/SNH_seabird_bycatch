@@ -4,7 +4,7 @@ header <- dashboardHeader(
   
   titleWidth =270,
   title = "Seabird Bycatch ERM",
-  tags$li(class = "dropdown", actionLink("howto", label = icon('question', "fa-1x"), style = "font-size: 19px")),
+  tags$li(class = "dropdown", actionLink("howto", label = 'User guide', style = "font-size: 19px")),#icon('question', "fa-1x")
   tags$li(class = "dropdown", actionLink("appvrsn", label = tags$b(CURRENT.VERSION), style = "font-size: 19px")), 
   tags$li(class = "dropdown", a(icon('github', "fa-2x"), href='https://github.com/HiDef-Aerial-Surveying/SNH_seabird_bycatch', 
                                 style = "padding-top: 10px; padding-bottom: 10px", target='_blank', id="lbl_codeLink")),
@@ -51,9 +51,14 @@ sidebar <- dashboardSidebar(
       # )
       
     ),
-    
+    menuItem(text = "Step 2: Species", icon = icon("dove"),
+             selectizeInput(inputId = "selectSpecs",  width = "100%", label="Species",  
+                            choices = species, multiple=FALSE,
+                            selected = defaultSpecies
+             )
+    ),
     menuItem(
-      "Step 2: Spatial information", tabName = "tab_spatPar", icon = icon("globe"),
+      "Step 3: Spatial information", tabName = "tab_spatPar", icon = icon("globe"),
       selectizeInput(inputId = "selectPlace",  width = "100%", label="Scottish marine region",  
                      choices = regions, multiple=FALSE,
                      selected = defaultRegion
@@ -62,18 +67,17 @@ sidebar <- dashboardSidebar(
       #menuItemOutput("menuSubItems_species")
     ),
     
-    menuItem(text = "Step 3: Species", icon = icon("dove"),
-             selectizeInput(inputId = "selectSpecs",  width = "100%", label="Species",  
-                            choices = species, multiple=FALSE,
-                            selected = defaultSpecies
-             )
-    ),
+   
     
     
     menuItem(
       "Step 4: Run simulation", tabName = "tab_simulation", icon = icon("brain"),
+      numericInput(inputId='bootsize',width="100%",label="Bootstrap size",value=1000,step=1000,min=0),
       bsButton('run',label='Run',icon=icon('play-circle'),style='info',type='action')
+      
     ),
+    
+    bsButton('collapse',label='Toggle data boxes',style='warning',type='action'),
     
     
     hr(),
@@ -83,7 +87,6 @@ sidebar <- dashboardSidebar(
     
     br(),
     bsAlert(anchorId = "alert")
-    
     
     
   )
@@ -99,6 +102,7 @@ body <- dashboardBody(
     box(
         title='Fisheries Information',
         width = 4,
+        class='boxbox',
         status= 'success',
         solidHeader = TRUE,
         collapsible = TRUE,
@@ -108,6 +112,7 @@ body <- dashboardBody(
     box(
         title='Species Dive Parameters',
         width = 8,
+        class='boxbox',
         status= 'success',
         collapsible= TRUE,
         solidHeader = TRUE,
@@ -116,6 +121,11 @@ body <- dashboardBody(
                   column(12,
                          textInput(inputId='speciesName',label='Species'),
                          textInput(inputId='sciName',label='Scientific Name'))
+               ),
+               fluidRow(
+                 column(12,
+                        actionLink("divesource", label = "Dive data", style = "font-size: 19px",icon=icon('question'))
+                        )
                ),
                fluidRow(
                  column(6,
@@ -145,6 +155,7 @@ body <- dashboardBody(
     
     box(title='Spatio-temporal Parameters',
         width = 8,
+        class='boxbox',
         status= 'primary',
         collapsible= TRUE,
         solidHeader = TRUE,
@@ -165,6 +176,9 @@ body <- dashboardBody(
         column(8,
                
                uiOutput('regionName'),
+               column(12,
+                      actionLink("densitysource", label = "Density data", style = "font-size: 19px",icon=icon('question'))
+                      ),
                column(6,
                       h3('Breeding season',style='text-align:center'),
                       
@@ -183,6 +197,7 @@ body <- dashboardBody(
     ),
     
     box(title='Availability Parameter',
+        class='boxbox',
         width = 4,
         status= 'primary',
         collapsible= TRUE,
@@ -197,7 +212,8 @@ body <- dashboardBody(
     ),
     
     
-    box(title='Simulation output',
+    box(
+        title='Model output',
         width = 12,
         status= 'info',
         collapsible= TRUE,
@@ -273,10 +289,10 @@ body <- dashboardBody(
         
         
         column(8,
-               box(title='Graphical output',
+               box(title='Simulation output',
                    width = 12,
                    status= 'primary',
-                   h2('A graphical output here')
+                   uiOutput('Simulation_Output')
                )
         )
 
@@ -298,6 +314,7 @@ body <- dashboardBody(
 bootstrapPage(
   
   shinyjs::useShinyjs(),
+  shinyjs:::extendShinyjs(text = jscode),
   #theme = shinytheme('spacelab'),
   includeCSS("style.css"),
   tags$head(

@@ -56,3 +56,49 @@ version.notes <- modalDialog(
   title = 'Version notes'
   
 )
+
+
+version.notes <- modalDialog(
+  h2('v0.0.5'),
+  tags$ul(
+    tags$li('Added data for number of dives per day for several species'),
+    tags$li('Standard deviation input parameters have been added to the front end'),
+    tags$li('Calculations for Dd, Fe and Ba for breeding and non-breeding seasons integrated'),
+    tags$li('Values are now all reactive and point estimates in the output box now change as values change')
+  ),
+  
+  title = 'Version notes'
+  
+)
+
+
+version.notes <- modalDialog(
+  h2('v0.0.6'),
+  tags$ul(
+    tags$li('Added code for doing bootstrapping on data'),
+    tags$li('Option to select the number of bootstraps added to menu tab'),
+    tags$li('Initial simulation output created for display'),
+    tags$li('Script added for testing bootstrapping on back-end')
+  ),
+  
+  title = 'Version notes'
+  
+)
+
+
+
+
+version.notes <- modalDialog(
+  h2('v0.0.7'),
+  tags$ul(
+    tags$li('Added progress bar for bootstrap function'),
+    tags$li('Moved bootstrap function to server.r for use in creating progress bar'),
+    tags$li('Added collapse button for data boxes'),
+    tags$li('Created a user guide integrated into a modal')
+  ),
+  
+  title = 'Version notes'
+  
+)
+
+
